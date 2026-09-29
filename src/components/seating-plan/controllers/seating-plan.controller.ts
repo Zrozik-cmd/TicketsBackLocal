@@ -6,6 +6,9 @@ import { UserOrManagerGuard } from '../../users/guards/user-or-manager.guard';
 import { MANAGER_ID_KEY } from '../../managers/guards/manager.guard';
 import { SeatingPlanService, type Field } from '../services/seating-plan.service';
 import { SeatingPlanPublishService } from '../services/seating-plan-publish.service';
+import { SeatingPlanNodesService } from '../services/seating-plan-nodes.service';
+import { SeatingPlanRowsService } from '../services/seating-plan-rows.service';
+import { SeatingPlanTotalsService } from '../services/seating-plan-totals.service';
 import {
   BulkUpdateNodesDto,
   BulkUpdateRowsDto,
@@ -57,6 +60,9 @@ function actorOf(req: Request): string {
 export class SeatingPlanController {
   constructor(
     private readonly service: SeatingPlanService,
+    private readonly nodes: SeatingPlanNodesService,
+    private readonly rows: SeatingPlanRowsService,
+    private readonly totals: SeatingPlanTotalsService,
     private readonly publish: SeatingPlanPublishService,
   ) {}
 
@@ -122,7 +128,7 @@ export class SeatingPlanController {
 
   @Get('summary')
   Summary(@Req() req: Request, @Query() query: SummaryDto) {
-    return this.service.Summary({ ...query, field: fieldOf(req) });
+    return this.totals.Summary({ ...query, field: fieldOf(req) });
   }
 
   /* --------------------------------------------------------------- холсты */
@@ -156,43 +162,43 @@ export class SeatingPlanController {
   @Post('node/create')
   @HttpCode(200)
   CreateNode(@Req() req: Request, @Body() body: CreateNodeDto) {
-    return this.service.CreateNode({ ...body, field: fieldOf(req) });
+    return this.nodes.CreateNode({ ...body, field: fieldOf(req) });
   }
 
   @Post('node/update')
   @HttpCode(200)
   UpdateNode(@Req() req: Request, @Body() body: UpdateNodeDto) {
-    return this.service.UpdateNode({ ...body, field: fieldOf(req) });
+    return this.nodes.UpdateNode({ ...body, field: fieldOf(req) });
   }
 
   @Post('node/bulk-update')
   @HttpCode(200)
   BulkUpdateNodes(@Req() req: Request, @Body() body: BulkUpdateNodesDto) {
-    return this.service.BulkUpdateNodes({ ...body, field: fieldOf(req) });
+    return this.nodes.BulkUpdateNodes({ ...body, field: fieldOf(req) });
   }
 
   @Post('node/duplicate')
   @HttpCode(200)
   DuplicateNode(@Req() req: Request, @Body() body: NodeIdDto) {
-    return this.service.DuplicateNode({ ...body, field: fieldOf(req) });
+    return this.nodes.DuplicateNode({ ...body, field: fieldOf(req) });
   }
 
   @Post('node/reparent')
   @HttpCode(200)
   ReparentNode(@Req() req: Request, @Body() body: ReparentNodeDto) {
-    return this.service.ReparentNode({ ...body, field: fieldOf(req) });
+    return this.nodes.ReparentNode({ ...body, field: fieldOf(req) });
   }
 
   @Post('node/photo')
   @HttpCode(200)
   NodePhoto(@Req() req: Request, @Body() body: NodePhotoDto) {
-    return this.service.SetNodePhoto({ ...body, field: fieldOf(req) });
+    return this.nodes.SetNodePhoto({ ...body, field: fieldOf(req) });
   }
 
   @Post('node/delete')
   @HttpCode(200)
   DeleteNode(@Req() req: Request, @Body() body: NodeIdDto) {
-    return this.service.DeleteNode({ ...body, field: fieldOf(req) });
+    return this.nodes.DeleteNode({ ...body, field: fieldOf(req) });
   }
 
   /* ------------------------------------------------------- ряды и места */
@@ -200,36 +206,36 @@ export class SeatingPlanController {
   @Post('row/update')
   @HttpCode(200)
   UpdateRow(@Req() req: Request, @Body() body: UpdateRowDto) {
-    return this.service.UpdateRow({ ...body, field: fieldOf(req) });
+    return this.rows.UpdateRow({ ...body, field: fieldOf(req) });
   }
 
   @Post('row/bulk-update')
   @HttpCode(200)
   BulkUpdateRows(@Req() req: Request, @Body() body: BulkUpdateRowsDto) {
-    return this.service.BulkUpdateRows({ ...body, field: fieldOf(req) });
+    return this.rows.BulkUpdateRows({ ...body, field: fieldOf(req) });
   }
 
   @Post('seat/update')
   @HttpCode(200)
   UpdateSeat(@Req() req: Request, @Body() body: UpdateSeatDto) {
-    return this.service.UpdateSeat({ ...body, field: fieldOf(req) });
+    return this.rows.UpdateSeat({ ...body, field: fieldOf(req) });
   }
 
   @Post('seat/bulk-update')
   @HttpCode(200)
   BulkUpdateSeats(@Req() req: Request, @Body() body: BulkUpdateSeatsDto) {
-    return this.service.BulkUpdateSeats({ ...body, field: fieldOf(req) });
+    return this.rows.BulkUpdateSeats({ ...body, field: fieldOf(req) });
   }
 
   @Post('seat/reset')
   @HttpCode(200)
   ResetSeat(@Req() req: Request, @Body() body: ResetSeatDto) {
-    return this.service.ResetSeat({ ...body, field: fieldOf(req) });
+    return this.rows.ResetSeat({ ...body, field: fieldOf(req) });
   }
 
   @Get('sector/expand')
   ExpandSector(@Req() req: Request, @Query() query: ExpandSectorDto) {
-    return this.service.ExpandSector({ ...query, field: fieldOf(req) });
+    return this.rows.ExpandSector({ ...query, field: fieldOf(req) });
   }
 }
 

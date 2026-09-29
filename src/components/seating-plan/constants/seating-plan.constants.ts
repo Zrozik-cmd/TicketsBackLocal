@@ -171,6 +171,8 @@ export const SEATING_PLAN_ERRORS = {
   planIsArchived: 'plan_is_archived',
   planIsNotPublished: 'plan_is_not_published',
   planHasSoldTickets: 'plan_has_sold_tickets',
+  /** У события уже есть продажи по его обычным (не схемным) зонам — схему на него не публикуем. */
+  eventHasSales: 'event_has_sales',
   planHasNoSectors: 'plan_has_no_sectors',
   planHasNoSellableSeats: 'plan_has_no_sellable_seats',
   /** Места в продаже с ценой 0; в ответе ещё `places` — где цены не хватает. */

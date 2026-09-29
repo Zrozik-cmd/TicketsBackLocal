@@ -105,6 +105,9 @@ export class SeatingPlanPublishService {
       status: SeatingPlanStatus.PUBLISHED,
     }).lean();
     if (await this.hasPlanSales(event.id, current?.id)) throw new ConflictException(ERR.planHasSoldTickets);
+    // Событие, которое уже продаётся по обычным зонам, остаётся как есть: схема на нём
+    // выставила бы те же физические места второй раз, а купленные билеты мест не имеют
+    if (await this.hasManualSales(event.id)) throw new ConflictException(ERR.eventHasSales);
 
     const warnings = await this.validatePlan(source.id);
 
@@ -263,6 +266,22 @@ export class SeatingPlanPublishService {
       planId ? SeatingPlanSeat.exists({ planId, saleStatus: { $in: BUSY } }) : null,
     ]);
     return Boolean(order || ticket || seat);
+  }
+
+  /**
+   * Есть ли продажи по обычным зонам события (заведённым в карточке, не `plan-`): живые
+   * заказы (ожидают оплаты, наличные, оплачены) или выданные билеты. Отменённые,
+   * истёкшие и возвращённые заказы продажей не считаются.
+   */
+  private async hasManualSales(eventId: number): Promise<boolean> {
+    const manual = { $not: PLAN_ID_REGEX };
+    const [order, ticket] = await Promise.all([
+      this.mockOrderModel
+        .exists({ event: eventId, status: { $in: HOLDS_SEAT_ORDER_STATUSES }, tickets: { $elemMatch: { sectorId: manual } } })
+        .exec(),
+      this.ticketModel.exists({ eventId, sector: manual }).exec(),
+    ]);
+    return Boolean(order || ticket);
   }
 
   /** Сектор события `plan-<id узла>` и зона `plan-<id узла>-<класс>-<n>` для каждой группы. */

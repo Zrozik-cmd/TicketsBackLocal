@@ -81,6 +81,8 @@ export class SeatingPlanMapService {
       planId: plan.id,
       version: plan.version,
       currency: plan.currency,
+      // Название и цвет своих категорий билетов (у мест — category = id отсюда)
+      categories: plan.categories ?? [],
       totals: plan.totals,
       rooms: rooms.map((room: any) => ({
         id: room.id,

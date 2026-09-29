@@ -25,6 +25,8 @@ import { isSellableObject, objectLabel, objectPlaces, ROWS_SOURCE, type PriceGro
 import { checkPlan, groupBy, planPriceGroups, unpricedProblem } from '../utils/plan-check.util';
 import { expandSector } from '../utils/expand.util';
 import { linkStandingZones } from '../standing-zones';
+import { categoryTitle, type Localized } from '../utils/plan-categories.util';
+import { SEPARATE_SEATS_TITLE, zoneTitle } from '../utils/zone-titles.util';
 import {
   Availability,
   NodeKind,
@@ -34,7 +36,6 @@ import {
   SeatingPlanStatus,
   SeatSaleStatus,
   ObjectType,
-  TicketCategory,
 } from '../constants/seating-plan.constants';
 import { HOLDS_SEAT_ORDER_STATUSES } from '../../mock-orders/constants/order-status-sets.constant';
 
@@ -49,28 +50,9 @@ const BUSY = [SeatSaleStatus.SOLD, SeatSaleStatus.HELD];
 /** Заказы, которые держат или уже продали места зоны (как в EventsService). */
 const PLAN_ID_REGEX = new RegExp(`^${PLAN_SECTOR_ID_PREFIX}`);
 
-type Localized = { th: string; en: string; ru: string };
-
-/** Подписи зон события по классу билета — на всех трёх языках витрины. */
-const CATEGORY_TITLES: Record<string, Localized> = {
-  [TicketCategory.ECONOMY]: { th: 'ชั้นประหยัด', en: 'Economy class', ru: 'Эконом класс' },
-  [TicketCategory.BUSINESS]: { th: 'ชั้นธุรกิจ', en: 'Business class', ru: 'Бизнес класс' },
-  [TicketCategory.VIP]: { th: 'VIP', en: 'VIP', ru: 'VIP' },
-};
-
-/** Подписи мест-объектов в названии зоны. */
-const OBJECT_TITLES: Record<string, Localized> = {
-  [ObjectType.ADD_CHAIR]: { th: 'เก้าอี้', en: 'Chair', ru: 'Стул' },
-  [ObjectType.ADD_SOFA]: { th: 'โซฟา', en: 'Sofa', ru: 'Диван' },
-  [ObjectType.ADD_TABLE]: { th: 'โต๊ะ', en: 'Table', ru: 'Стол' },
-  [ObjectType.DISABLED_SEATS]: { th: 'ที่นั่งสำหรับผู้พิการ', en: 'Accessible seat', ru: 'Место для МГН' },
-};
-
-/** Сектор события для стульев, диванов и столов, стоящих вне секторов схемы. */
-const SEPARATE_SEATS_TITLE: Localized = { th: 'ที่นั่งแยก', en: 'Separate seats', ru: 'Отдельные места' };
 const SEPARATE_SEATS_KEY = 'objects';
 
-type ProjectedGroup = PriceGroup & { eventSectorId: string; eventZoneId: string };
+type ProjectedGroup = PriceGroup & { eventSectorId: string; eventZoneId: string; categoryTitle: Localized };
 
 /**
  * Публикация схемы: снапшот плана и проекция его в тарифы события.
@@ -285,13 +267,17 @@ export class SeatingPlanPublishService {
 
   /** Сектор события `plan-<id узла>` и зона `plan-<id узла>-<класс>-<n>` для каждой группы. */
   private async projectGroups(planId: number): Promise<ProjectedGroup[]> {
-    const [nodes, rows, seats]: any[] = await Promise.all([
+    const [plan, nodes, rows, seats]: any[] = await Promise.all([
+      SeatingPlan.findOne({ id: planId }).select({ categories: 1 }).lean(),
       SeatingPlanNode.find({ planId }).lean(),
       SeatingPlanRow.find({ planId }).lean(),
       SeatingPlanSeat.find({ planId }).lean(),
     ]);
 
-    const groups = planPriceGroups(nodes, rows, seats);
+    const groups = planPriceGroups(nodes, rows, seats).map((group) => ({
+      ...group,
+      categoryTitle: categoryTitle(group.category, plan?.categories),
+    }));
 
     // Порядковый номер цены внутри «сектор + источник + класс»: смена цены всего сектора
     // не меняет id зоны, и проданная зона остаётся узнаваемой.
@@ -371,7 +357,7 @@ export class SeatingPlanPublishService {
         name: separate ? SEPARATE_SEATS_TITLE : { th: title, en: title, ru: title },
         zones: sectorGroups.map((group) => ({
           id: group.eventZoneId,
-          name: this.zoneTitle(group, (perKind.get(`${group.source}|${group.category}`) ?? 0) > 1),
+          name: zoneTitle(group, group.categoryTitle, (perKind.get(`${group.source}|${group.category}`) ?? 0) > 1),
           seats: group.seatsCount,
           isFree: !group.price,
           price: group.price,
@@ -379,34 +365,6 @@ export class SeatingPlanPublishService {
         })),
       } as unknown as ISector;
     });
-  }
-
-  /**
-   * Подпись зоны: класс билета для мест рядов («VIP»), тип объекта с классом для
-   * стульев и диванов («Sofa · VIP»), номер и вместимость для номерного стола.
-   */
-  private zoneTitle(group: ProjectedGroup, withPrice: boolean): Localized {
-    const category = CATEGORY_TITLES[group.category] ?? CATEGORY_TITLES[TicketCategory.ECONOMY];
-    const price = withPrice ? ` · ${group.price} THB` : '';
-
-    if (group.objectId != null) {
-      const n = group.tableNumber ?? group.objectId;
-      const seats = group.seatsCount;
-      return {
-        th: `โต๊ะ ${n} (${seats} ที่นั่ง) · ${category.th}`,
-        en: `Table ${n} (${seats} seats) · ${category.en}`,
-        ru: `Стол ${n} (${seats} мест) · ${category.ru}`,
-      };
-    }
-    if (group.source !== ROWS_SOURCE) {
-      const object = OBJECT_TITLES[group.source] ?? OBJECT_TITLES[ObjectType.ADD_CHAIR];
-      return {
-        th: `${object.th} · ${category.th}${price}`,
-        en: `${object.en} · ${category.en}${price}`,
-        ru: `${object.ru} · ${category.ru}${price}`,
-      };
-    }
-    return { th: category.th + price, en: category.en + price, ru: category.ru + price };
   }
 
   /**

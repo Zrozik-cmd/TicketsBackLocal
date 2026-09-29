@@ -13,6 +13,7 @@ import {
   SEATING_PLAN_ERRORS as ERR,
 } from "../constants/seating-plan.constants";
 import { expandSector } from "../utils/expand.util";
+import { normalizePlanCategories } from "../utils/plan-categories.util";
 import { stripMeta } from "../utils/node-fields.util";
 import { getPlan, getEditablePlan } from "./seating-plan-access";
 import { SeatingPlanTotalsService } from "./seating-plan-totals.service";
@@ -82,6 +83,7 @@ export class SeatingPlanService {
     if (dto.title !== undefined) patch.title = dto.title;
     if (dto.currency !== undefined) patch.currency = dto.currency;
     if (dto.preview !== undefined) patch.preview = dto.preview;
+    if (dto.categories !== undefined) patch.categories = normalizePlanCategories(dto.categories);
 
     await SeatingPlan.updateOne({ id: plan.id }, { $set: patch });
     return { id: plan.id, ...patch };
@@ -126,6 +128,8 @@ export class SeatingPlanService {
       createdBy: source.createdBy ?? null,
       sourcePlanId: source.id,
       currency: source.currency,
+      // ### Категории нужны снапшоту: по ним публикация подписывает зоны события
+      categories: source.categories ?? [],
       totals: source.totals,
       version: 1,
       ...overrides,

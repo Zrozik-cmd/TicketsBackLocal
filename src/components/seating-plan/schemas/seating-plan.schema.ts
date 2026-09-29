@@ -1,6 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 import { autoIncrement } from 'mongoose-plugin-autoinc';
 import { DEFAULT_PLAN_CURRENCY, SeatingPlanStatus } from '../constants/seating-plan.constants';
+import type { PlanCategory } from '../utils/plan-categories.util';
 
 /** Денормализованные итоги проекта: Live Review читает их одним документом. */
 export interface ISeatingPlanTotals {
@@ -33,6 +34,11 @@ export interface ISeatingPlan {
   currency: string;
   /** Media.id миниатюры схемы (опционально). */
   preview?: number | null;
+  /**
+   * Категории билетов проекта (название и цвет). Пусто — только три стандартных класса.
+   * Места, ряды и объекты хранят в `ticket.categories` id отсюда.
+   */
+  categories?: PlanCategory[];
   totals: ISeatingPlanTotals;
   publishedAt: Date | null;
   createdAt: Date;
@@ -55,6 +61,7 @@ export const SeatingPlanSchema = new Schema<ISeatingPlan>(
     version: { type: Number, default: 1 },
     currency: { type: String, default: DEFAULT_PLAN_CURRENCY },
     preview: { type: Number, default: null },
+    categories: { type: [Object], default: [] },
     totals: { type: Object, default: {} },
     publishedAt: { type: Date, default: null },
   },

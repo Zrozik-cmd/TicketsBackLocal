@@ -1,4 +1,6 @@
+import { Type } from "class-transformer";
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -8,10 +10,17 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from "class-validator";
+import {
+  PLAN_CATEGORY_COLOR_PATTERN,
+  PLAN_CATEGORY_ID_PATTERN,
+  PLAN_CATEGORY_LIMITS,
+} from "../utils/plan-categories.util";
 import {
   LabelStyle,
   NodeForm,
@@ -37,11 +46,21 @@ export class PlanIdDto {
   @IsOptional() @IsString() id?: string;
 }
 
+// ### Категория билета проекта: id — стандартный класс или свой (cat_…), name — null
+// ### у стандартной с переводом по умолчанию
+export class PlanCategoryDto {
+  @IsString() @MaxLength(PLAN_CATEGORY_LIMITS.id) @Matches(PLAN_CATEGORY_ID_PATTERN) id: string;
+  @IsOptional() @IsString() @MaxLength(PLAN_CATEGORY_LIMITS.name) name?: string | null;
+  @IsString() @Matches(PLAN_CATEGORY_COLOR_PATTERN) color: string;
+}
+
 export class UpdatePlanDto {
   @IsInt() @IsPositive() id: number;
   @IsOptional() @IsString() title?: string;
   @IsOptional() @IsString() currency?: string;
   @IsOptional() @IsInt() preview?: number;
+  @IsOptional() @IsArray() @ArrayMaxSize(PLAN_CATEGORY_LIMITS.count) @ValidateNested({ each: true }) @Type(() => PlanCategoryDto)
+  categories?: PlanCategoryDto[];
 }
 
 export class SavePlanDto {

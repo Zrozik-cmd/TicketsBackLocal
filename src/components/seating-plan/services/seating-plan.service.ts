@@ -32,6 +32,7 @@ import { expandSector, resolveTicket, sectorSeatsTotal } from "../utils/expand.u
 import { seatsForRow } from "../utils/row-shape.util";
 import { objectPlaces, primaryCategory, resolveObjectTicket } from "../utils/price-groups.util";
 import { isSellableObject, isStandingSector } from "../utils/object-places.util";
+import { labelFields, stripMeta } from "../utils/node-fields.util";
 
 /** Ownership: план принадлежит организатору (у менеджера — создавшему его организатору). */
 export type Field = { creator: number };
@@ -207,7 +208,7 @@ export class SeatingPlanService {
     const roomIds = new Map<number, number>();
     for (const room of rooms) {
       const created: any = await SeatingPlanRoom.create({
-        ...this.strip(room),
+        ...stripMeta(room),
         planId: plan.id,
       });
       roomIds.set(room.id, created.id);
@@ -216,7 +217,7 @@ export class SeatingPlanService {
     const nodeIds = new Map<number, number>();
     for (const node of nodes) {
       const created: any = await SeatingPlanNode.create({
-        ...this.strip(node),
+        ...stripMeta(node),
         planId: plan.id,
         roomId: roomIds.get(node.roomId),
         parentId: null,
@@ -236,7 +237,7 @@ export class SeatingPlanService {
     const rowIds = new Map<number, number>();
     for (const row of rows) {
       const created: any = await SeatingPlanRow.create({
-        ...this.strip(row),
+        ...stripMeta(row),
         planId: plan.id,
         roomId: roomIds.get(row.roomId),
         sectorId: nodeIds.get(row.sectorId),
@@ -246,7 +247,7 @@ export class SeatingPlanService {
 
     for (const seat of seats) {
       await SeatingPlanSeat.create({
-        ...this.strip(seat),
+        ...stripMeta(seat),
         planId: plan.id,
         sectorId: nodeIds.get(seat.sectorId),
         rowId: rowIds.get(seat.rowId),
@@ -436,6 +437,7 @@ export class SeatingPlanService {
       decor: dto.decor === true,
       isSellable: isSellableObject(dto),
       tableNumber: dto.tableNumber ?? null,
+      ...labelFields(dto),
     });
 
     // ### Add Sector сразу создаёт ряды: конструктор рисует их без второго запроса
@@ -456,6 +458,7 @@ export class SeatingPlanService {
     const direct = [
       "title", "color", "locked", "venueType", "playgroundType", "form",
       "sectorType", "seatType", "numbering", "ticket", "objectType", "tableNumber", "decor",
+      "text", "fontSize", "labelStyle",
     ];
     direct.forEach((key) => {
       if (dto[key] !== undefined) patch[key] = dto[key];
@@ -517,7 +520,7 @@ export class SeatingPlanService {
     const geometry = normalizeGeometry(node.geometry);
 
     const copy: any = await SeatingPlanNode.create({
-      ...this.strip(node),
+      ...stripMeta(node),
       // ### Копия появляется рядом с оригиналом, а не поверх него
       geometry: { ...geometry, x: geometry.x + 16, y: geometry.y + 16 },
     });
@@ -525,14 +528,14 @@ export class SeatingPlanService {
     const rows: any[] = await SeatingPlanRow.find({ sectorId: node.id }).lean();
     for (const row of rows) {
       const createdRow: any = await SeatingPlanRow.create({
-        ...this.strip(row),
+        ...stripMeta(row),
         sectorId: copy.id,
       });
 
       const seats: any[] = await SeatingPlanSeat.find({ rowId: row.id }).lean();
       for (const seat of seats)
         await SeatingPlanSeat.create({
-          ...this.strip(seat),
+          ...stripMeta(seat),
           sectorId: copy.id,
           rowId: createdRow.id,
         });
@@ -806,11 +809,6 @@ export class SeatingPlanService {
   }
 
   /* --------------------------------------------------------------- служебное */
-
-  private strip(doc: any) {
-    const { _id, id, __v, createdAt, updatedAt, ...rest } = doc;
-    return rest;
-  }
 
   private touch(planId: number) {
     return SeatingPlan.updateOne({ id: planId }, { $set: { updatedAt: new Date() } });

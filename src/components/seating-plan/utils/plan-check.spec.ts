@@ -107,4 +107,12 @@ describe("проверка схемы перед публикацией", () => 
     expect(checkPlan([sector(), decor], [row(10, 0, 4)], []).problem).toBeNull();
     expect(checkPlan([decor], [], []).problem?.message).toBe("plan_has_no_sectors");
   });
+
+  it("подпись мест не даёт: ни цены, ни предупреждений по её ticket", () => {
+    const label = object({ id: 30, objectType: "text_label", isSellable: false, text: "Вход\nA", ticket: { categories: ["vip_class", "economy_class"] } });
+    const { problem, warnings } = checkPlan([sector(), label], [row(10, 0, 4)], []);
+    expect(problem).toBeNull();
+    expect(warnings).toEqual([]);
+    expect(checkPlan([label], [], []).problem?.message).toBe("plan_has_no_sectors");
+  });
 });

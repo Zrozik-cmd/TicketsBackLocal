@@ -78,12 +78,20 @@ export enum ObjectType {
   FIRST_AID = 'first_aid',
   PHOTO_ZONE = 'photo_zone',
   CLEAN_SECTOR = 'clean_sector',
+  /** Подпись на холсте: `text`, `fontSize`, `labelStyle`; мест не даёт. */
+  TEXT_LABEL = 'text_label',
+}
+
+/** Вид подписи `text_label`: просто текст или текст на плашке. */
+export enum LabelStyle {
+  PLAIN = 'plain',
+  BADGE = 'badge',
 }
 
 /**
  * Объекты, дающие места: попав внутрь сектора, они увеличивают его вместимость
  * (номерной стол и диван — на свою `capacity`, остальные — на одно место).
- * Бар, гардероб, вход, туалет, медпункт, фотозона и чистый сектор мест не дают.
+ * Бар, гардероб, вход, туалет, медпункт, фотозона, чистый сектор и подпись мест не дают.
  */
 export const SELLABLE_OBJECTS: string[] = [
   ObjectType.ADD_TABLE,
@@ -197,6 +205,7 @@ export const SEATING_PLAN_DICTIONARIES = {
   playgroundType: values(PlaygroundType),
   objectType: values(ObjectType),
   sellableObjects: SELLABLE_OBJECTS,
+  labelStyle: values(LabelStyle),
   seatType: values(SeatType),
   ticketCategory: values(TicketCategory),
   availability: values(Availability),

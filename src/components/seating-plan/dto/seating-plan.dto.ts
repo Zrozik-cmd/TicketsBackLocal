@@ -8,10 +8,12 @@ import {
   IsOptional,
   IsPositive,
   IsString,
+  Max,
   MaxLength,
   Min,
 } from "class-validator";
 import {
+  LabelStyle,
   NodeForm,
   NodeKind,
   ObjectType,
@@ -144,6 +146,10 @@ export class CreateNodeDto {
   @IsOptional() @IsInt() @Min(0) tableNumber?: number;
   // ### Декор (стол, стул, диван, места для МГН): мест не даёт, ticket игнорируется
   @IsOptional() @IsBoolean() decor?: boolean;
+  // ### Подпись (objectType: text_label): многострочный текст через \n
+  @IsOptional() @IsString() @MaxLength(500) text?: string;
+  @IsOptional() @IsNumber() @Min(8) @Max(120) fontSize?: number;
+  @IsOptional() @IsEnum(LabelStyle) labelStyle?: LabelStyle;
 }
 
 export class UpdateNodeDto {
@@ -170,6 +176,10 @@ export class UpdateNodeDto {
   @IsOptional() @IsInt() @Min(0) tableNumber?: number;
   // ### Декор (стол, стул, диван, места для МГН): мест не даёт, ticket игнорируется
   @IsOptional() @IsBoolean() decor?: boolean;
+  // ### Подпись (objectType: text_label): многострочный текст через \n
+  @IsOptional() @IsString() @MaxLength(500) text?: string;
+  @IsOptional() @IsNumber() @Min(8) @Max(120) fontSize?: number;
+  @IsOptional() @IsEnum(LabelStyle) labelStyle?: LabelStyle;
 }
 
 // ### Один запрос на завершённый drag или поворот группы: без него конструктор

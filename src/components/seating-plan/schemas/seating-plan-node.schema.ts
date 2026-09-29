@@ -48,6 +48,10 @@ export interface ISeatingPlanNode {
   decor: boolean;
   /** Номер банкетного стола (`numbered_table`). */
   tableNumber?: number | null;
+  /** Подпись (`text_label`): текст (строки через `\n`), кегль и вид plain/badge. */
+  text?: string;
+  fontSize?: number;
+  labelStyle?: string;
 
   createdAt: Date;
   updatedAt: Date;
@@ -83,6 +87,9 @@ export const SeatingPlanNodeSchema = new Schema<ISeatingPlanNode>(
     isSellable: { type: Boolean, default: false },
     decor: { type: Boolean, default: false },
     tableNumber: { type: Number, default: null },
+    text: { type: String },
+    fontSize: { type: Number },
+    labelStyle: { type: String },
   },
   { timestamps: true, collection: 'seating_plan_nodes', minimize: false },
 );

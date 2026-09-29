@@ -110,4 +110,10 @@ describe('цены схемы зала', () => {
     expect(groups.map((group) => `${group.source}:${group.seatsCount}`)).toEqual(['add_chair:1']);
     expect(sectorSeatsTotal(sector({ rowsCount: 0 }), [], objects)).toBe(1);
   });
+
+  it('подпись не даёт мест и не попадает в зоны, даже с ценой в ticket', () => {
+    const label = object({ id: 30, objectType: 'text_label', parentId: 1, text: 'Exit', ticket: { price: 100 } });
+    expect(buildPriceGroups([sector({ rowsCount: 0 })], new Map(), new Map(), [label])).toEqual([]);
+    expect(sectorSeatsTotal(sector({ rowsCount: 0 }), [], [label])).toBe(0);
+  });
 });

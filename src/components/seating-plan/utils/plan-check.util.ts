@@ -119,9 +119,11 @@ export function checkPlan(
 
   // Мультивыбор категорий в макете есть, правила распределения мест — нет:
   // публикуем по первой категории и говорим об этом явно.
+  // Только продающие узлы: ticket декора и подписей не читается.
   nodes
     .filter(
       (node) =>
+        (node.kind === NodeKind.SECTOR || isSellableObject(node)) &&
         Array.isArray(node.ticket?.categories) &&
         node.ticket.categories.length > 1,
     )

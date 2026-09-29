@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body {
+        margin: 0;
+        width: fit-content;
+        padding: 64px;
+        background-color: #F5F5F5;
+        box-sizing: border-box;
+    }
+
+    .ticket-shell {
+        width: 1166px;
+        filter: drop-shadow(0 4px 24px rgba(15, 5, 32, 0.25));
+    }
+
+    /*
+     * PDF only (`body.pdf`): Chrome prints an element with a `filter` as one bitmap
+     * of the whole ticket (~2.4 MB a ticket, too heavy for e-mail), so the PDF ticket has no
+     * drop shadow and stays vector. The WebP keeps the shadow.
+     */
+    body.pdf .ticket-shell {
+        filter: none;
+    }
+
+    .frame {
+        border-radius: 52px 52px 0px 0px;
+
+        /* Side notches: radius of the hole cut (left / right) */
+        --side-hole-r: 44px;
+        /* How far the side notches are measured up from the bottom of the card */
+        --side-hole-bottom-offset: 632px;
+        /* Bottom row: hole radius, horizontal repeat (centre-to-centre) = pitch, first-hole X shift */
+        --bottom-hole-r: 44px;
+        --bottom-hole-pitch: 136px; /* ≈ edge gap + 2 * --bottom-hole-r */
+        --bottom-hole-align-x: -28px; /* nudge the whole row left/right */
+        display: flex;
+        flex-direction: column;
+        gap: 40px;
+        padding-bottom: 128px;
+        width: 100%;
+        background-color: #FFFFFF;
+        position: relative;
+        overflow: visible;
+        z-index: 0;
+        /* The notches and the holes are cut by the outline script at the end of the page. */
+    }
+
+    /* .frame::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -34px;
+        height: 68px;
+        pointer-events: none;
+        z-index: 2;
+        background:
+          radial-gradient(circle at 34px 34px, #F5F5F5 34px, transparent 34.5px) 0 0 / 120px 68px repeat-x;
+    } */
+
+    .frame .cover-image {
+        /* The frame's own white, so the PDF step can flatten a transparent cover onto it (JPEG, not lossless PNG). */
+        background-color: #FFFFFF;
+        border-radius: 52px 52px 0px 0px;
+        height: 654px;
+        object-fit: cover;
+        width: 1166px;
+    }
+
+    .frame .title {
+      margin: 0;
+    }
+
+    .frame .address {
+      margin: 0;
+    }
+
+    .frame .div {
+        align-items: flex-start;
+        display: flex;
+        flex-direction: column;
+        gap: 60px;
+        /* height: 1375px; */
+        margin-left: 83px;
+        position: relative;
+        width: 1000px;
+    }
+
+    .frame .div-2 {
+        align-items: flex-start;
+        align-self: stretch;
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 20px;
+        position: relative;
+        width: 100%;
+    }
+
+    .frame .div-3 {
+        align-items: flex-start;
+        align-self: stretch;
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 12px;
+        position: relative;
+        width: 100%;
+    }
+
+    .frame .text-wrapper {
+        align-self: stretch;
+        color: var(--carbon-700);
+        font-family: "SF Pro Display-Bold", Helvetica;
+        font-size: 66px;
+        font-weight: 700;
+        letter-spacing: 0;
+        line-height: 69.3px;
+        margin-top: -1px;
+        position: relative;
+    }
+
+    .frame .p {
+        align-self: stretch;
+        color: #646567;
+        font-family: "SF Pro Display-Medium", Helvetica;
+        font-size: 32px;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 44.8px;
+        position: relative;
+    }
+
+    .frame .div-4 {
+        align-items: flex-start;
+        align-self: stretch;
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 30px;
+        position: relative;
+        width: 100%;
+    }
+
+    .frame .div-5 {
+        align-items: center;
+        align-self: stretch;
+        display: flex;
+        flex: 0 0 auto;
+        justify-content: space-between;
+        position: relative;
+        width: 100%;
+    }
+
+    .frame .text-wrapper-2 {
+        color: #818386;
+        font-family: "SF Pro Display-Regular", Helvetica;
+        font-size: 28px;
+        font-weight: 400;
+        letter-spacing: 0;
+        line-height: 33.6px;
+        position: relative;
+        white-space: nowrap;
+        width: fit-content;
+    }
+
+    .frame .text-wrapper-3 {
+        color: #050b15;
+        font-family: "SF Pro Display-Medium", Helvetica;
+        font-size: 30px;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 38.4px;
+        margin-top: -1px;
+        position: relative;
+        text-align: right;
+        white-space: nowrap;
+        width: fit-content;
+    }
+
+    .frame .text-wrapper-4 {
+        margin-top: 4px;
+        margin-bottom: 4px;
+        align-self: stretch;
+        color: #1c19ff;
+        font-family: "SF Pro Display-Medium", Helvetica;
+        font-size: 24px;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 36px;
+        position: relative;
+    }
+
+    .frame .element {
+        margin: 0;
+        align-self: stretch;
+        color: #818386;
+        font-family: "SF Pro Display-Medium", Helvetica;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 33.6px;
+        position: relative;
+    }
+
+    .frame .line {
+        margin-top: 4px;
+        margin-bottom: 4px;
+        align-self: stretch;
+        height: 2px;
+        background-color: #e5e7eb;
+        position: relative;
+        width: 100%;
+    }
+
+    .frame .div-7 {
+        align-items: center;
+        display: inline-flex;
+        flex: 0 0 auto;
+        gap: 10px;
+        justify-content: center;
+        position: relative;
+    }
+
+    .frame .vector {
+        height: 40px;
+        position: relative;
+        width: 43px;
+    }
+
+    .frame .text-wrapper-5 {
+        color: #050b15;
+        font-family: "SF Pro Display-Medium", Helvetica;
+        font-size: 32px;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 40px;
+        margin-top: -1px;
+        position: relative;
+        text-align: right;
+        white-space: nowrap;
+        width: fit-content;
+    }
+
+    .frame .subtract {
+        height: 40px;
+        position: relative;
+        width: 40px;
+    }
+
+    .frame .text-wrapper-6 {
+        color: #818386;
+        font-family: "SF Pro Display-Regular", Helvetica;
+        font-size: 28px;
+        font-weight: 400;
+        letter-spacing: 0;
+        line-height: 33.6px;
+        margin-top: -1px;
+        position: relative;
+        white-space: nowrap;
+        width: fit-content;
+    }
+
+    .frame .text-wrapper-7 {
+        color: #646567;
+        font-family: "SF Pro Display-Medium", Helvetica;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 33.6px;
+        margin-top: -1px;
+        position: relative;
+        text-align: right;
+        white-space: nowrap;
+        width: fit-content;
+    }
+
+    .frame .element-2 {
+        color: #000000;
+        font-family: "SF Pro Display-Medium", Helvetica;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 33.6px;
+        margin-top: -1px;
+        position: relative;
+        text-align: right;
+        white-space: nowrap;
+        width: fit-content;
+    }
+
+    .frame .div-8 {
+        align-items: flex-end;
+        align-self: stretch;
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 40px;
+        position: relative;
+        width: 100%;
+    }
+
+    .frame .img {
+        align-self: stretch;
+        height: 1px;
+        background-color: #e5e7eb;
+        margin-top: -1px;
+        position: relative;
+        width: 100%;
+    }
+
+    .frame .div-9 {
+        align-items: center;
+        display: flex;
+        flex: 0 0 auto;
+        gap: 40px;
+        position: relative;
+        width: 1000px;
+    }
+
+    .frame .div-10 {
+        align-items: center;
+        display: inline-flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        gap: 16px;
+        position: relative;
+    }
+
+    .frame .container {
+        height: 328px;
+        margin-left: -2.5px;
+        margin-right: -2.5px;
+        position: relative;
+        width: 328px;
+    }
+
+    .frame .text-wrapper-8 {
+        color: #818386;
+        font-family: "SF Pro Display-Medium", Helvetica;
+        font-size: 22px;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 24px;
+        position: relative;
+        white-space: nowrap;
+        width: fit-content;
+    }
+
+    .frame .div-11 {
+        align-items: flex-start;
+        align-self: stretch;
+        background-color: #fff69733;
+        border: 2px solid;
+        border-color: #ffd939;
+        border-radius: 24px;
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        flex-grow: 1;
+        gap: 24px;
+        margin-bottom: -1px;
+        margin-right: -1px;
+        margin-top: -1px;
+        padding: 32px;
+        position: relative;
+    }
+
+    .frame .div-12 {
+        align-items: flex-start;
+        align-self: stretch;
+        display: flex;
+        flex: 0 0 auto;
+        flex-direction: column;
+        position: relative;
+        width: 100%;
+    }
+
+    .frame .text-wrapper-9 {
+        align-self: stretch;
+        color: #171717;
+        font-family: "SF Pro Display-Bold", Helvetica;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 0;
+        line-height: 36px;
+        margin-top: -1px;
+        position: relative;
+    }
+
+    .frame .text-wrapper-10 {
+        margin: 0;
+        align-self: stretch;
+        color: #454545;
+        font-family: "SF Pro Display-Medium", Helvetica;
+        font-size: 26px;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 36.4px;
+        position: relative;
+        white-space: pre-line;
+    }
+
+    .frame .ticket-rules-list {
+        margin: 0;
+        padding-left: 34px;
+        align-self: stretch;
+    }
+
+    .frame .ticket-rules-item {
+        color: #454545;
+        font-family: "SF Pro Display-Medium", Helvetica;
+        font-size: 26px;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 36.4px;
+    }
+
+    .frame .text-wrapper-11 {
+        margin: 0;
+        align-self: stretch;
+        color: #e50003;
+        font-family: "SF Pro Display-Medium", Helvetica;
+        font-size: 26px;
+        font-weight: 500;
+        letter-spacing: 0;
+        line-height: 36.4px;
+        position: relative;
+    }
+
+    .frame .logo {
+        height: 40px;
+        position: relative;
+        width: 161px;
+    }
+
+    /*
+     * "Sponsored by" row (event sponsors, 1-3), rendered only when there are sponsors.
+     * Sponsors on the left, the ARBI logo on the right. The row has a fixed height, so the
+     * side notches stay centred on the separator above the QR code whatever the names are:
+     * 632px + (60px gap + 210px row) - (40px gap + 12px margin + 40px logo) = 810px.
+     */
+    .frame.has-sponsors {
+        --side-hole-bottom-offset: 810px;
+    }
+
+    .frame .div-8.has-sponsors {
+        gap: 60px;
+    }
+
+    .frame .bottom-row {
+        align-items: flex-end;
+        align-self: stretch;
+        display: flex;
+        gap: 40px;
+        height: 210px;
+        justify-content: space-between;
+        position: relative;
+    }
+
+    .frame .bottom-row .logo {
+        flex: 0 0 auto;
+    }
+
+    .frame .sponsors {
+        align-items: flex-start;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        min-width: 0;
+        position: relative;
+    }
+
+    .frame .sponsors-title {
+        color: #818386;
+        font-family: "SF Pro Display-Regular", Helvetica;
+        font-size: 28px;
+        font-weight: 400;
+        height: 33.6px;
+        letter-spacing: 0;
+        line-height: 33.6px;
+        white-space: nowrap;
+    }
+
+    .frame .sponsors-list {
+        align-items: center;
+        display: flex;
+        gap: 20px;
+    }
+
+    .frame .sponsor {
+        align-items: center;
+        display: flex;
+        flex: 0 0 200px;
+        flex-direction: column;
+        gap: 12px;
+        width: 200px;
+    }
+
+    .frame .sponsor-logo {
+        background-color: #ffffff;
+        border: 2px solid #cacaca;
+        border-radius: 50%;
+        box-sizing: border-box;
+        display: block;
+        height: 120px;
+        object-fit: cover;
+        width: 120px;
+    }
+
+    .frame .sponsor-name {
+        color: #1f1f1f;
+        font-family: "SF Pro Display-Medium", Helvetica;
+        font-size: 22px;
+        font-weight: 500;
+        height: 24px;
+        letter-spacing: 0;
+        line-height: 24px;
+        overflow: hidden;
+        text-align: center;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        width: 200px;
+    }
+
+    /*
+     * Sponsor links, clickable in the PDF. A sponsor that carries one is printed exactly like a
+     * sponsor without — same colour, no underline: the link is only a transparent box laid over
+     * the item. It has to be laid from outside .ticket-shell, because a `filter` on it (the
+     * WebP's shadow) makes Chrome print the whole ticket as one image and drop every link
+     * inside it. The boxes therefore come right after the shell (the page break moves here with
+     * them): the frame's content ends 128px above the shell's bottom, items as in
+     * .sponsors-list (200x156, 20px apart, 83px from the left edge).
+     */
+    .sponsor-links {
+        height: 0;
+        position: relative;
+        width: 1166px;
+    }
+
+    .sponsor-links-row {
+        bottom: 128px;
+        display: flex;
+        gap: 20px;
+        left: 83px;
+        position: absolute;
+    }
+
+    .sponsor-link {
+        display: block;
+        flex: 0 0 200px;
+        height: 156px;
+        width: 200px;
+    }
+  </style>
+</head>
+<body{{#if pdf}} class="pdf"{{/if}}>
+{{#each tickets}}
+  <div class="ticket-shell" {{#unless @last}}{{#unless sponsors.length}}style="page-break-after: always;"{{/unless}}{{/unless}}>
+  <div class="frame{{#if sponsors.length}} has-sponsors{{/if}}">
+    <img class="cover-image" data-pdf-shrink src="{{coverImage}}" />
+
+    <div class="div">
+      <div class="div-2">
+        <div class="div-3">
+          <p class="text-wrapper title">{{title}}</p>
+          <p class="p address">{{address}}</p>
+        </div>
+      </div>
+
+      <div class="div-4">
+        <div class="div-2">
+          <div class="div-5">
+            <div class="text-wrapper-2">{{dateTitle}}</div>
+            <div class="text-wrapper-3">{{date}}</div>
+          </div>
+
+          <div class="div-5">
+            <div class="text-wrapper-2">{{timeTitle}}</div>
+            <div class="text-wrapper-3">{{time}}</div>
+          </div>
+        
+          <!-- <div class="div-5">
+            <div class="text-wrapper-2">{{startTitle}}</div>
+            <div class="text-wrapper-3">{{start}}</div>
+          </div> -->
+
+          <div class="div-5">
+            <div class="text-wrapper-2">{{sectorTitle}}</div>
+            <div class="text-wrapper-3">{{sectorName}}</div>
+          </div>
+          
+          <div class="div-5">
+            <div class="text-wrapper-2">{{zoneTitle}}</div>
+            <div class="text-wrapper-3">{{zoneName}}</div>
+          </div>
+          {{#if seatName}}
+          <div class="div-5">
+            <div class="text-wrapper-2">{{seatTitle}}</div>
+            <div class="text-wrapper-3">{{seatName}}</div>
+          </div>
+          {{/if}}
+        </div>
+        <p class="text-wrapper-4">{{arrivalNote}}</p>
+
+        <div class="line"></div>
+
+        <div class="div-2">
+          <div class="div-5">
+            <div class="text-wrapper-2">{{sellerTitle}}</div>
+            <div class="div-7">
+              <img class="vector" src="{{sellerIcon}}" />
+              <div class="text-wrapper-5">{{seller}}</div>
+            </div>
+          </div>
+
+          <div class="div-5">
+            <div class="text-wrapper-2">{{serviceTitle}}</div>
+            <div class="div-7">
+              <img class="subtract" src="{{serviceIcon}}" />
+              <div class="text-wrapper-5">{{service}}</div>
+            </div>
+          </div>
+
+          <div class="div-5">
+            <div class="text-wrapper-6">{{orderTitle}}</div>
+            <div class="text-wrapper-7">{{order}}</div>
+          </div>
+
+          <div class="div-5">
+            <div class="text-wrapper-6">{{infoAndDetailsTitle}}</div>
+            <div class="element-2">{{phone}}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="div-8{{#if sponsors.length}} has-sponsors{{/if}}">
+        <div class="div-4">
+          <div class="line" style="margin-top: 0; margin-bottom: 12px;"></div>
+
+          <div class="div-9">
+            <div class="div-10">
+              <img class="container" src="{{qr}}" />
+              <div class="text-wrapper-8">{{qrText}}</div>
+            </div>
+
+            <div class="div-11">
+                <div class="text-wrapper-9">{{ticketRulesTitle}}</div>
+                <ul class="ticket-rules-list">
+                  {{#each ticketRulesList}}
+                    <li class="ticket-rules-item">{{this}}</li>
+                  {{/each}}
+                </ul>
+
+              <p class="text-wrapper-11">
+                {{dontShareOnSocialMediaTitle}}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {{#if sponsors.length}}
+        <div class="bottom-row">
+          <div class="sponsors">
+            <div class="sponsors-title">{{sponsorsTitle}}</div>
+            <div class="sponsors-list">
+              {{#each sponsors}}
+              <div class="sponsor">
+                <img class="sponsor-logo" data-pdf-shrink src="{{logo}}" />
+                <div class="sponsor-name" style="font-size: {{nameFontSize}}px;">{{name}}</div>
+              </div>
+              {{/each}}
+            </div>
+          </div>
+
+          <img class="logo" src="{{logo}}" />
+        </div>
+        {{else}}
+        <img class="logo" src="{{logo}}" style="margin-top: 12px;" />
+        {{/if}}
+      </div>
+    </div>
+  </div>
+  </div>
+  {{#if sponsors.length}}
+  <div class="sponsor-links"{{#unless @last}} style="page-break-after: always;"{{/unless}}>
+    <div class="sponsor-links-row">
+      {{#each sponsors}}
+      {{#if url}}
+      <a class="sponsor-link" href="{{url}}"></a>
+      {{else}}
+      <span class="sponsor-link"></span>
+      {{/if}}
+      {{/each}}
+    </div>
+  </div>
+  {{/if}}
+{{/each}}
+<script>
+  /*
+   * Ticket outline: the side notches and the scalloped bottom edge are cut out of each .frame
+   * by a clip-path built from its size and its --side-hole-* / --bottom-hole-* variables. Chrome
+   * prints a clip-path as a vector clip, so the PDF gets the same cut-outs as the WebP (a CSS
+   * mask lost its side notches in the PDF), and the WebP's drop shadow follows it. Even-odd
+   * path: each hole is a whole circle centred on the frame's edge, inside an outline that
+   * runs past the sides and the bottom (nothing is painted there), so no hole shares an edge
+   * with it: a shared edge shows up as a hairline in PDF viewers.
+   */
+  (function () {
+    function circle(cx, cy, r) {
+      return 'M' + (cx - r) + ' ' + cy + ' a' + r + ' ' + r + ' 0 1 0 ' + 2 * r + ' 0' +
+        ' a' + r + ' ' + r + ' 0 1 0 ' + -2 * r + ' 0 Z ';
+    }
+
+    function outline(frame) {
+      var style = getComputedStyle(frame);
+      var px = function (name) { return parseFloat(style.getPropertyValue(name)) || 0; };
+      var box = frame.getBoundingClientRect();
+      var w = box.width;
+      var h = box.height;
+      var c = parseFloat(style.borderTopLeftRadius) || 0;
+      var sideR = px('--side-hole-r');
+      var r = px('--bottom-hole-r');
+      var pitch = px('--bottom-hole-pitch');
+      var out = Math.max(sideR, r) + 1;
+      // Rounded top corners on the frame box, then out past its sides and bottom.
+      var d = 'M0 ' + c + ' A' + c + ' ' + c + ' 0 0 1 ' + c + ' 0 H' + (w - c) +
+        ' A' + c + ' ' + c + ' 0 0 1 ' + w + ' ' + c + ' H' + (w + out) + ' V' + (h + out) +
+        ' H' + -out + ' V' + c + ' Z ';
+      var notchY = h - px('--side-hole-bottom-offset');
+      d += circle(0, notchY, sideR) + circle(w, notchY, sideR);
+      for (var x = px('--bottom-hole-align-x') + pitch / 2; pitch > 0 && x - r < w; x += pitch) {
+        if (x + r > 0) d += circle(x, h, r);
+      }
+      frame.style.clipPath = "path(evenodd, '" + d + "')";
+    }
+
+    var frames = document.querySelectorAll('.frame');
+    // Recomputed if the frame ever changes size (e.g. a late font); runs before the next paint.
+    var observer = window.ResizeObserver && new ResizeObserver(function (entries) {
+      entries.forEach(function (entry) { outline(entry.target); });
+    });
+    for (var i = 0; i < frames.length; i++) {
+      outline(frames[i]);
+      if (observer) observer.observe(frames[i]);
+    }
+  })();
+</script>
+</body>
+</html>

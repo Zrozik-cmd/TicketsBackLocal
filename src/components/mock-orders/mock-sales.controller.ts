@@ -1,0 +1,47 @@
+import { Controller, Get, Param, ParseIntPipe, Query, Req, UseGuards } from '@nestjs/common';
+import { Request } from 'express';
+import { MockOrdersService } from './mock-orders.service';
+import { MockOrdersPaidListQueryDto } from './dto/mock-orders-event-paid-list.dto';
+import { SessionPeriodFilterQueryDto } from '../events/dto/session-period-filter.dto';
+import { UserOrManagerGuard } from '../users/guards/user-or-manager.guard';
+import { USER_ID_KEY } from '../users/guards/user.guard';
+import { MANAGER_ID_KEY } from '../managers/guards/manager.guard';
+import { ManagersService } from '../managers/managers.service';
+
+@Controller('mock-orders/sales')
+@UseGuards(UserOrManagerGuard(['Admin', 'Marketing']))
+export class MockSalesController {
+  constructor(
+    private readonly mockOrdersService: MockOrdersService,
+    private readonly managersService: ManagersService,
+  ) {}
+
+  /** Optional `from`/`to` (ICT show dates, inclusive) and `sessionId` narrow it to those shows. */
+  @Get('events/:eventId/statistics')
+  async getEventStatistics(
+    @Req() req: Request,
+    @Param('eventId', ParseIntPipe) eventId: number,
+    @Query() query: SessionPeriodFilterQueryDto,
+  ) {
+    const managerId = (req as any)[MANAGER_ID_KEY] as string | undefined;
+    if (managerId) {
+      await this.managersService.assertManagerAssignedToEvent(managerId, eventId);
+    }
+    const creatorUserId = (req as any)[USER_ID_KEY] as string;
+    return this.mockOrdersService.getEventPaidSalesStatistics(eventId, creatorUserId, query);
+  }
+
+  @Get('events/:eventId/paid-orders')
+  async getPaidOrders(
+    @Req() req: Request,
+    @Param('eventId', ParseIntPipe) eventId: number,
+    @Query() query: MockOrdersPaidListQueryDto,
+  ) {
+    const managerId = (req as any)[MANAGER_ID_KEY] as string | undefined;
+    if (managerId) {
+      await this.managersService.assertManagerAssignedToEvent(managerId, eventId);
+    }
+    const creatorUserId = (req as any)[USER_ID_KEY] as string;
+    return this.mockOrdersService.findPaidMockOrdersForEventPaged(eventId, query, creatorUserId);
+  }
+}

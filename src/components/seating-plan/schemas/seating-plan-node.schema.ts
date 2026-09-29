@@ -40,6 +40,9 @@ export interface ISeatingPlanNode {
   photo?: number | null;
   /** Денормализовано: места рядов плюс вложенные продаваемые объекты. */
   seatsTotal: number;
+  /** Стоячий сектор опубликованного снапшота: сектор и зона события, где он продаётся. */
+  eventSectorId?: string | null;
+  eventZoneId?: string | null;
 
   // kind = object
   objectType?: string;
@@ -82,6 +85,8 @@ export const SeatingPlanNodeSchema = new Schema<ISeatingPlanNode>(
     ticket: { type: Object, default: {} },
     photo: { type: Number, default: null },
     seatsTotal: { type: Number, default: 0 },
+    eventSectorId: { type: String, default: null },
+    eventZoneId: { type: String, default: null },
 
     objectType: { type: String },
     isSellable: { type: Boolean, default: false },

@@ -104,6 +104,9 @@ export class SeatingPlanMapService {
             // Стоячий сектор рисуется по capacity; декор мест не даёт
             capacity: node.capacity,
             decor: node.decor === true,
+            // Стоячий сектор продаётся количеством: строка заказа — sectorId + zoneId, без seatIds
+            eventSectorId: node.eventSectorId ?? null,
+            zoneId: node.eventZoneId ?? null,
             text: node.text,
             fontSize: node.fontSize,
             labelStyle: node.labelStyle,

@@ -33,6 +33,7 @@ import { seatsForRow } from "../utils/row-shape.util";
 import { objectPlaces, primaryCategory, resolveObjectTicket } from "../utils/price-groups.util";
 import { isSellableObject, isStandingSector } from "../utils/object-places.util";
 import { labelFields, stripMeta } from "../utils/node-fields.util";
+import { addSectorSeatCounts, emptySeatCounts } from "../utils/seat-counts.util";
 
 /** Ownership: план принадлежит организатору (у менеджера — создавшему его организатору). */
 export type Field = { creator: number };
@@ -221,6 +222,9 @@ export class SeatingPlanService {
         planId: plan.id,
         roomId: roomIds.get(node.roomId),
         parentId: null,
+        // ### Зону стоячего сектора проставляет публикация своего снапшота, копии она чужая
+        eventSectorId: null,
+        eventZoneId: null,
       });
       nodeIds.set(node.id, created.id);
     }
@@ -761,20 +765,7 @@ export class SeatingPlanService {
         const sectorRows = rows.filter((row) => row.sectorId === sector.id);
         const sectorSeats = seats.filter((seat) => seat.sectorId === sector.id);
         const children = nodes.filter((node) => node.parentId === sector.id);
-        const expanded = expandSector(sector, sectorRows, sectorSeats);
-
-        const byCategory: Record<string, number> = {};
-        const bySeatType: Record<string, number> = {};
-
-        expanded.forEach((row) =>
-          row.seats.forEach((seat) => {
-            if (seat.disabled) return;
-            (seat.ticket.categories || []).forEach((category) => {
-              byCategory[category] = (byCategory[category] || 0) + 1;
-            });
-            if (seat.seatType) bySeatType[seat.seatType] = (bySeatType[seat.seatType] || 0) + 1;
-          }),
-        );
+        const { byCategory, bySeatType } = addSectorSeatCounts(emptySeatCounts(), sector, sectorRows, sectorSeats);
 
         // ### Стулья, диваны и столы внутри сектора — со своим классом или классом сектора
         children
@@ -899,8 +890,8 @@ export class SeatingPlanService {
       SeatingPlanSeat.find({ planId }).lean(),
     ]);
 
-    const byCategory: Record<string, number> = {};
-    const bySeatType: Record<string, number> = {};
+    const counts = emptySeatCounts();
+    const { byCategory, bySeatType } = counts;
     const pending: { id: number; seatsTotal: number }[] = [];
     let seatsTotal = 0;
     let sectors = 0;
@@ -919,17 +910,7 @@ export class SeatingPlanService {
         seatsTotal += own;
         if (sector.seatsTotal !== own) pending.push({ id: sector.id, seatsTotal: own });
 
-        if (isStandingSector(sector)) return;
-
-        expandSector(sector, sectorRows, sectorSeats).forEach((row) =>
-          row.seats.forEach((seat) => {
-            if (seat.disabled) return;
-            (seat.ticket.categories || []).forEach((category) => {
-              byCategory[category] = (byCategory[category] || 0) + 1;
-            });
-            if (seat.seatType) bySeatType[seat.seatType] = (bySeatType[seat.seatType] || 0) + 1;
-          }),
-        );
+        addSectorSeatCounts(counts, sector, sectorRows, sectorSeats);
       });
 
     // ### Стулья, диваны и столы: класс — свой или сектора, в котором стоят. Места объектов

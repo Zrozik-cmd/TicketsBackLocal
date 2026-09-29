@@ -24,6 +24,7 @@ import { SeatingPlanService, type Field } from './seating-plan.service';
 import { isSellableObject, objectLabel, objectPlaces, ROWS_SOURCE, type PriceGroup } from '../utils/price-groups.util';
 import { checkPlan, groupBy, planPriceGroups, unpricedProblem } from '../utils/plan-check.util';
 import { expandSector } from '../utils/expand.util';
+import { linkStandingZones } from '../standing-zones';
 import {
   Availability,
   NodeKind,
@@ -143,6 +144,7 @@ export class SeatingPlanPublishService {
     }
 
     const seats = await this.materializeSeats(snapshot.plan.id, event.id, groups);
+    await linkStandingZones(snapshot.plan.id, groups);
 
     if (current) await this.Archive(current.id);
 
@@ -210,6 +212,7 @@ export class SeatingPlanPublishService {
       }
       await this.writeEventSectors(event, groups, dto.field);
       await this.relinkSeats(plan.id, groups);
+      await linkStandingZones(plan.id, groups);
       zones = groups.length;
     }
 

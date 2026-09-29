@@ -70,6 +70,20 @@ describe("закрепление мест схемы за заказом", () =>
     ).toBe("seats_not_for_sessions");
   });
 
+  it("стоячая зона количеством рядом с местами: её строка проходит без мест", () => {
+    const order = [
+      { zoneId: "plan-5-vip_class-0", count: 4 },
+      { zoneId: "z-a", count: 2, seatIds: [2, 1] },
+    ];
+    const { error, lines } = checkOrderSeats(order, seats);
+    expect(error).toBeNull();
+    expect(lines.map((line) => line.zoneId)).toEqual(["z-a"]);
+    const out = attachSeatsToLines(order, lines);
+    expect(out[0]).toEqual({ zoneId: "plan-5-vip_class-0", count: 4 });
+    expect(ticketPlacementFields(out[0] as any, 3)).toEqual({});
+    expect((out[1] as any).seats.map((seat: any) => seat.id)).toEqual([2, 1]);
+  });
+
   it("места уходят в строки заказа и оттуда — в билеты по порядку", () => {
     const lines = attachSeatsToLines(
       [

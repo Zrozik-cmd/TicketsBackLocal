@@ -1,6 +1,6 @@
-import { Availability, ObjectType, SELLABLE_OBJECTS, SectorType, TicketCategory } from '../constants/seating-plan.constants';
+import { Availability, ObjectType, SectorType, TicketCategory } from '../constants/seating-plan.constants';
 import { expandSector, ExpandedSeat, resolveTicket } from './expand.util';
-import { objectPlaces } from './object-places.util';
+import { isSellableObject, objectPlaces } from './object-places.util';
 
 export type PlanSeatDraft = {
   /** Сектор, в котором стоит место (у объекта вне секторов — null). */
@@ -54,7 +54,7 @@ export const groupKey = (sectorId: number | null, source: string, category: stri
 
 const sellable = (seat: ExpandedSeat) => !seat.disabled && seat.ticket?.availability !== Availability.UNAVAILABLE;
 
-export { objectPlaces } from './object-places.util';
+export { isSellableObject, objectPlaces } from './object-places.util';
 
 /**
  * Билет объекта: своя цена/класс/доступность, а чего не задано — берётся с сектора,
@@ -144,9 +144,10 @@ export function buildPriceGroups(
 
   // Стулья, диваны, столы и номерные столы: у каждого своя цена или цена сектора,
   // в котором он стоит. Объект вне секторов продаётся отдельным сектором события.
+  // Декор мест не даёт, и его ticket не читается.
   const sectorsById = new Map(sectors.map((sector) => [sector.id, sector]));
   objects
-    .filter((node) => SELLABLE_OBJECTS.includes(node.objectType))
+    .filter(isSellableObject)
     .forEach((object) => {
       const parent = object.parentId != null ? (sectorsById.get(object.parentId) ?? null) : null;
       const ticket = resolveObjectTicket(object, parent);

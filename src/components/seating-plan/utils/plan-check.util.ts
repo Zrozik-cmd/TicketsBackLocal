@@ -3,7 +3,7 @@ import {
   SEATING_PLAN_ERRORS as ERR,
   SectorType,
 } from "../constants/seating-plan.constants";
-import { buildPriceGroups, type PriceGroup } from "./price-groups.util";
+import { buildPriceGroups, isSellableObject, type PriceGroup } from "./price-groups.util";
 
 /** Места в продаже с ценой 0: сектор (null — «Отдельные места») и тип места. */
 export type UnpricedPlaces = {
@@ -72,9 +72,7 @@ export function checkPlan(
   seats: any[],
 ): { problem: PlanProblem | null; warnings: string[] } {
   const sectors = nodes.filter((node) => node.kind === NodeKind.SECTOR);
-  const hasSellableObjects = nodes.some(
-    (node) => node.kind === NodeKind.OBJECT && node.isSellable,
-  );
+  const hasSellableObjects = nodes.some(isSellableObject);
   // Продавать можно и без секторов: банкетный зал из одних номерных столов — тоже схема.
   if (!sectors.length && !hasSellableObjects) {
     return {

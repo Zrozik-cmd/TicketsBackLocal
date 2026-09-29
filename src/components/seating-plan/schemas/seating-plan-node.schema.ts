@@ -44,6 +44,8 @@ export interface ISeatingPlanNode {
   // kind = object
   objectType?: string;
   isSellable: boolean;
+  /** Декор: рисуется, но мест не даёт и не продаётся (см. `isSellableObject`). */
+  decor: boolean;
   /** Номер банкетного стола (`numbered_table`). */
   tableNumber?: number | null;
 
@@ -79,6 +81,7 @@ export const SeatingPlanNodeSchema = new Schema<ISeatingPlanNode>(
 
     objectType: { type: String },
     isSellable: { type: Boolean, default: false },
+    decor: { type: Boolean, default: false },
     tableNumber: { type: Number, default: null },
   },
   { timestamps: true, collection: 'seating_plan_nodes', minimize: false },

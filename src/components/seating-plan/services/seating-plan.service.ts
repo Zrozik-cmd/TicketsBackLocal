@@ -19,8 +19,6 @@ import {
   SeatingPlanStatus,
   SeatSaleStatus,
   SECTOR_COLOR_IDS,
-  SectorType,
-  SELLABLE_OBJECTS,
   SEATING_PLAN_DICTIONARIES,
   VenueType,
   DEFAULT_PLAN_CURRENCY,
@@ -33,6 +31,7 @@ import { centerInside, normalizeGeometry } from "../utils/geometry.util";
 import { expandSector, resolveTicket, sectorSeatsTotal } from "../utils/expand.util";
 import { seatsForRow } from "../utils/row-shape.util";
 import { objectPlaces, primaryCategory, resolveObjectTicket } from "../utils/price-groups.util";
+import { isSellableObject, isStandingSector } from "../utils/object-places.util";
 
 /** Ownership: план принадлежит организатору (у менеджера — создавшему его организатору). */
 export type Field = { creator: number };
@@ -434,7 +433,8 @@ export class SeatingPlanService {
       numbering: dto.numbering || {},
       ticket: dto.ticket || {},
       objectType: dto.objectType,
-      isSellable: dto.kind === NodeKind.OBJECT ? SELLABLE_OBJECTS.includes(dto.objectType) : false,
+      decor: dto.decor === true,
+      isSellable: isSellableObject(dto),
       tableNumber: dto.tableNumber ?? null,
     });
 
@@ -455,7 +455,7 @@ export class SeatingPlanService {
     const patch: any = {};
     const direct = [
       "title", "color", "locked", "venueType", "playgroundType", "form",
-      "sectorType", "seatType", "numbering", "ticket", "objectType", "tableNumber",
+      "sectorType", "seatType", "numbering", "ticket", "objectType", "tableNumber", "decor",
     ];
     direct.forEach((key) => {
       if (dto[key] !== undefined) patch[key] = dto[key];
@@ -465,7 +465,7 @@ export class SeatingPlanService {
     if (dto.rowsCount !== undefined) patch.rowsCount = Number(dto.rowsCount) || 0;
     if (dto.seatsPerRow !== undefined) patch.seatsPerRow = Number(dto.seatsPerRow) || 0;
     if (dto.capacity !== undefined) patch.capacity = Number(dto.capacity) || 0;
-    if (dto.objectType !== undefined) patch.isSellable = SELLABLE_OBJECTS.includes(dto.objectType);
+    if (dto.objectType !== undefined || dto.decor !== undefined) patch.isSellable = isSellableObject({ ...node, ...patch });
 
     await SeatingPlanNode.updateOne({ id: node.id }, { $set: patch });
     const updated: any = await SeatingPlanNode.findOne({ id: node.id }).lean();
@@ -475,7 +475,7 @@ export class SeatingPlanService {
       dto.rowsCount !== undefined ||
       dto.seatsPerRow !== undefined ||
       dto.numbering !== undefined ||
-      dto.form !== undefined;
+      dto.form !== undefined || dto.sectorType !== undefined;
     if (updated.kind === NodeKind.SECTOR && gridChanged) await this.syncRows(updated);
 
     // ### Сдвинули объект — заново решаем, в каком он секторе; сдвинули сектор —
@@ -775,7 +775,7 @@ export class SeatingPlanService {
 
         // ### Стулья, диваны и столы внутри сектора — со своим классом или классом сектора
         children
-          .filter((node) => SELLABLE_OBJECTS.includes(node.objectType))
+          .filter(isSellableObject)
           .forEach((object) => {
             const ticket = resolveObjectTicket(object, sector);
             if (ticket.availability === "unavailable") return;
@@ -817,9 +817,9 @@ export class SeatingPlanService {
   }
 
   // ### Ряды всегда соответствуют rowsCount, а оверрайды переживают перегенерацию:
-  // ### ключ идентичности ряда — index, а не id.
+  // ### ключ идентичности ряда — index, а не id. У стоячего сектора рядов нет вовсе.
   private async syncRows(sector: any) {
-    const rowsCount = Number(sector.rowsCount) || 0;
+    const rowsCount = isStandingSector(sector) ? 0 : Number(sector.rowsCount) || 0;
     const seatsPerRow = Number(sector.seatsPerRow) || 0;
     const labels = buildRowLabels(rowsCount, sector.numbering);
     const existing: any[] = await SeatingPlanRow.find({ sectorId: sector.id }).lean();
@@ -921,7 +921,7 @@ export class SeatingPlanService {
         seatsTotal += own;
         if (sector.seatsTotal !== own) pending.push({ id: sector.id, seatsTotal: own });
 
-        if (sector.sectorType === SectorType.STANDING) return;
+        if (isStandingSector(sector)) return;
 
         expandSector(sector, sectorRows, sectorSeats).forEach((row) =>
           row.seats.forEach((seat) => {
@@ -938,7 +938,7 @@ export class SeatingPlanService {
     // ### внутри секторов уже вошли в seatsTotal сектора, вне секторов — добавляем здесь.
     const sectorsById = new Map(nodes.filter((node) => node.kind === NodeKind.SECTOR).map((node) => [node.id, node]));
     nodes
-      .filter((node) => node.kind === NodeKind.OBJECT && SELLABLE_OBJECTS.includes(node.objectType))
+      .filter(isSellableObject)
       .forEach((object) => {
         const parent = object.parentId != null ? sectorsById.get(object.parentId) : null;
         const ticket = resolveObjectTicket(object, parent);

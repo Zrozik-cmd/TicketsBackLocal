@@ -101,7 +101,9 @@ export class SeatingPlanMapService {
             form: node.form,
             seatsTotal: node.seatsTotal,
             tableNumber: node.tableNumber ?? null,
+            // Стоячий сектор рисуется по capacity; декор мест не даёт
             capacity: node.capacity,
+            decor: node.decor === true,
             photo: node.photo ?? null,
             // У стула, дивана и стола — его собственные места с ценой и статусом
             seats:

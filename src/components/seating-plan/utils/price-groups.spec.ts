@@ -1,5 +1,5 @@
 import { buildPriceGroups, objectPlaces, resolveObjectTicket } from './price-groups.util';
-import { resolveTicket } from './expand.util';
+import { resolveTicket, sectorSeatsTotal } from './expand.util';
 import { seatsForRow } from './row-shape.util';
 
 const sector = (over: any = {}) => ({
@@ -91,5 +91,23 @@ describe('цены схемы зала', () => {
     expect(trapezoid).toEqual([4, 5, 6, 7, 8, 9, 10, 11, 12, 13]);
     expect(seatsForRow('rectangle', 3, 10, 13)).toBe(13);
     expect(seatsForRow('corner', 0, 10, 10)).toBe(4);
+  });
+
+  it('стоячий сектор — одна зона на всю вместимость по цене и классу сектора', () => {
+    const standing = sector({ sectorType: 'standing', rowsCount: 0, seatsPerRow: 0, capacity: 150 });
+    const groups = buildPriceGroups([standing], new Map(), new Map());
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({ standing: true, seatsCount: 150, price: 3000, category: 'business_class', seats: [] });
+  });
+
+  it('декор не даёт мест: ни в зонах, ни во вместимости сектора', () => {
+    const objects = [
+      object({ id: 20, objectType: 'add_chair', parentId: 1, decor: true }),
+      object({ id: 21, objectType: 'numbered_table', capacity: 6, decor: true, ticket: { price: 900 } }),
+      object({ id: 22, objectType: 'add_chair', parentId: 1 }),
+    ];
+    const groups = buildPriceGroups([sector({ rowsCount: 0 })], new Map(), new Map(), objects);
+    expect(groups.map((group) => `${group.source}:${group.seatsCount}`)).toEqual(['add_chair:1']);
+    expect(sectorSeatsTotal(sector({ rowsCount: 0 }), [], objects)).toBe(1);
   });
 });

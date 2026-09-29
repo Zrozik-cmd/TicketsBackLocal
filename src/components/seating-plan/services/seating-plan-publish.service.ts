@@ -21,7 +21,7 @@ import { seatingPlanRowModel } from '../schemas/seating-plan-row.schema';
 import { seatingPlanSeatModel } from '../schemas/seating-plan-seat.schema';
 
 import { SeatingPlanService, type Field } from './seating-plan.service';
-import { objectLabel, objectPlaces, ROWS_SOURCE, type PriceGroup } from '../utils/price-groups.util';
+import { isSellableObject, objectLabel, objectPlaces, ROWS_SOURCE, type PriceGroup } from '../utils/price-groups.util';
 import { checkPlan, groupBy, planPriceGroups, unpricedProblem } from '../utils/plan-check.util';
 import { expandSector } from '../utils/expand.util';
 import {
@@ -427,7 +427,7 @@ export class SeatingPlanPublishService {
    * состоянием. Материализуются ВСЕ места — и снятые с продажи, и проходы (BLOCKED), —
    * а собственные переопределения места (цена, класс, доступность, подпись) переносятся
    * как есть: по ним мягкий патч потом пересчитывает наследование от сектора и ряда.
-   * Возвращает число мест на продаже.
+   * Возвращает число мест на продаже; стоячие секторы мест не имеют и считаются по вместимости.
    */
   private async materializeSeats(planId: number, eventId: number, groups: ProjectedGroup[]) {
     const [nodes, rows, drafts]: any[] = await Promise.all([
@@ -488,7 +488,7 @@ export class SeatingPlanPublishService {
       }
     }
 
-    for (const object of nodes.filter((node: any) => node.kind === NodeKind.OBJECT && node.isSellable)) {
+    for (const object of nodes.filter(isSellableObject)) {
       const places = objectPlaces(object);
       const base = objectLabel(object);
       for (let index = 0; index < places; index++) {
@@ -511,7 +511,7 @@ export class SeatingPlanPublishService {
     }
 
     await flush();
-    return onSale;
+    return onSale + groups.reduce((sum, group) => sum + (group.standing ? group.seatsCount : 0), 0);
   }
 
   /** Место → его группа продажи: `row:<rowId>:<index>` или `object:<objectId>:<index>`. */

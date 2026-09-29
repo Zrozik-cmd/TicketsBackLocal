@@ -142,6 +142,8 @@ export class CreateNodeDto {
 
   @IsOptional() @IsEnum(ObjectType) objectType?: ObjectType;
   @IsOptional() @IsInt() @Min(0) tableNumber?: number;
+  // ### Декор (стол, стул, диван, места для МГН): мест не даёт, ticket игнорируется
+  @IsOptional() @IsBoolean() decor?: boolean;
 }
 
 export class UpdateNodeDto {
@@ -166,6 +168,8 @@ export class UpdateNodeDto {
 
   @IsOptional() @IsEnum(ObjectType) objectType?: ObjectType;
   @IsOptional() @IsInt() @Min(0) tableNumber?: number;
+  // ### Декор (стол, стул, диван, места для МГН): мест не даёт, ticket игнорируется
+  @IsOptional() @IsBoolean() decor?: boolean;
 }
 
 // ### Один запрос на завершённый drag или поворот группы: без него конструктор

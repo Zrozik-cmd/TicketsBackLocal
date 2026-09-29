@@ -91,4 +91,20 @@ describe("проверка схемы перед публикацией", () => 
       message: "duplicate_row_label:1:A",
     });
   });
+
+  it("схема из одних стоячих секторов с вместимостью и ценой публикуется", () => {
+    const standing = sector({ sectorType: "standing", rowsCount: 0, seatsPerRow: 0, capacity: 200 });
+    expect(checkPlan([standing], [], []).problem).toBeNull();
+  });
+
+  it("стоячий сектор без вместимости мест в продаже не даёт", () => {
+    const standing = sector({ sectorType: "standing", rowsCount: 0, capacity: 0 });
+    expect(checkPlan([standing], [], []).problem?.message).toBe("plan_has_no_sellable_seats");
+  });
+
+  it("декор без цены не мешает публикации и продаваемым объектом не считается", () => {
+    const decor = object({ id: 20, objectType: "add_sofa", capacity: 3, decor: true, ticket: { availability: "unavailable" } });
+    expect(checkPlan([sector(), decor], [row(10, 0, 4)], []).problem).toBeNull();
+    expect(checkPlan([decor], [], []).problem?.message).toBe("plan_has_no_sectors");
+  });
 });

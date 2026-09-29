@@ -1,6 +1,6 @@
 import { buildSeatLabels, Numbering } from "./numbering.util";
-import { SELLABLE_OBJECTS, SectorType } from "../constants/seating-plan.constants";
-import { objectPlaces } from "./object-places.util";
+import { SectorType } from "../constants/seating-plan.constants";
+import { isSellableObject, objectPlaces } from "./object-places.util";
 
 export type TicketSettings = {
   priceMode?: string;
@@ -112,7 +112,8 @@ export function expandSector(
     });
 }
 
-// ### Места сектора: ряды плюс вложенные продаваемые объекты (стол, стул, диван, места для МГН)
+// ### Места сектора: ряды плюс вложенные продаваемые объекты (стол, стул, диван, места для МГН);
+// ### декор мест не даёт
 export function sectorSeatsTotal(
   sector: any,
   rows: any[],
@@ -120,7 +121,7 @@ export function sectorSeatsTotal(
   seats: any[] = [],
 ): number {
   const nested = children
-    .filter((node) => SELLABLE_OBJECTS.includes(node.objectType))
+    .filter(isSellableObject)
     .reduce((sum, node) => sum + objectPlaces(node), 0);
 
   if (sector.sectorType === SectorType.STANDING) {

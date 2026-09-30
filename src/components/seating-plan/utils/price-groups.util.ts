@@ -182,9 +182,13 @@ export function buildPriceGroups(
   return [...groups.values()];
 }
 
-/** Подпись места объекта в билете: «Table 3», «Sofa #12». */
+/** Подпись места объекта в билете: «Table 3», «Chair 5», «Sofa 2»; без номера — «Sofa #12». */
 export function objectLabel(object: any): string {
   if (object.objectType === ObjectType.NUMBERED_TABLE) return `Table ${object.tableNumber ?? object.id}`;
+  // Стул, диван и стол с номером из конструктора — номер организатора, а не id узла
+  if (object.tableNumber && object.objectType === ObjectType.ADD_CHAIR) return `Chair ${object.tableNumber}`;
+  if (object.tableNumber && object.objectType === ObjectType.ADD_SOFA) return `Sofa ${object.tableNumber}`;
+  if (object.tableNumber && object.objectType === ObjectType.ADD_TABLE) return `Table ${object.tableNumber}`;
   const names: Record<string, string> = {
     [ObjectType.ADD_TABLE]: 'Table',
     [ObjectType.ADD_CHAIR]: 'Chair',

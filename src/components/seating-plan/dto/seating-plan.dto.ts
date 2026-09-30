@@ -150,6 +150,8 @@ export class CreateNodeDto {
   @IsOptional() @IsString() @MaxLength(500) text?: string;
   @IsOptional() @IsNumber() @Min(8) @Max(120) fontSize?: number;
   @IsOptional() @IsEnum(LabelStyle) labelStyle?: LabelStyle;
+  // ### Сектор или зона (чистый сектор) продаётся только целиком
+  @IsOptional() @IsBoolean() soldWhole?: boolean;
 }
 
 export class UpdateNodeDto {
@@ -180,6 +182,8 @@ export class UpdateNodeDto {
   @IsOptional() @IsString() @MaxLength(500) text?: string;
   @IsOptional() @IsNumber() @Min(8) @Max(120) fontSize?: number;
   @IsOptional() @IsEnum(LabelStyle) labelStyle?: LabelStyle;
+  // ### Сектор или зона (чистый сектор) продаётся только целиком
+  @IsOptional() @IsBoolean() soldWhole?: boolean;
 }
 
 // ### Один запрос на завершённый drag или поворот группы: без него конструктор

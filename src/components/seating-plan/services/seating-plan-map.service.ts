@@ -110,6 +110,8 @@ export class SeatingPlanMapService {
             text: node.text,
             fontSize: node.fontSize,
             labelStyle: node.labelStyle,
+            // Сектор или зона продаётся только целиком — витрина выбирает все места сразу
+            soldWhole: node.soldWhole === true,
             photo: node.photo ?? null,
             // У стула, дивана и стола — его собственные места с ценой и статусом
             seats:

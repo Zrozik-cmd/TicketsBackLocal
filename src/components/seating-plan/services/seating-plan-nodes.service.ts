@@ -66,6 +66,7 @@ export class SeatingPlanNodesService {
       ticket: dto.ticket || {},
       objectType: dto.objectType,
       decor: dto.decor === true,
+      soldWhole: dto.soldWhole === true,
       isSellable: isSellableObject(dto),
       tableNumber: dto.tableNumber ?? null,
       ...labelFields(dto),
@@ -89,7 +90,7 @@ export class SeatingPlanNodesService {
     const direct = [
       "title", "color", "locked", "venueType", "playgroundType", "form",
       "sectorType", "seatType", "numbering", "ticket", "objectType", "tableNumber", "decor",
-      "text", "fontSize", "labelStyle",
+      "text", "fontSize", "labelStyle", "soldWhole",
     ];
     direct.forEach((key) => {
       if (dto[key] !== undefined) patch[key] = dto[key];

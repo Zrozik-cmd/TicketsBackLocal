@@ -55,6 +55,8 @@ export interface ISeatingPlanNode {
   text?: string;
   fontSize?: number;
   labelStyle?: string;
+  /** Сектор или именованная зона продаётся только целиком: выбор одного места берёт все */
+  soldWhole?: boolean;
 
   createdAt: Date;
   updatedAt: Date;
@@ -95,6 +97,7 @@ export const SeatingPlanNodeSchema = new Schema<ISeatingPlanNode>(
     text: { type: String },
     fontSize: { type: Number },
     labelStyle: { type: String },
+    soldWhole: { type: Boolean, default: false },
   },
   { timestamps: true, collection: 'seating_plan_nodes', minimize: false },
 );

@@ -46,6 +46,16 @@ describe('цены схемы зала', () => {
     expect(summary).toEqual(['vip_class:5000:4', 'business_class:4500:1', 'business_class:3000:2']);
   });
 
+  it('стул и диван с номером из конструктора подписаны номером, а не id узла', () => {
+    const objects = [
+      object({ id: 30, objectType: 'add_chair', tableNumber: 5, ticket: { price: 100 } }),
+      object({ id: 31, objectType: 'add_sofa', tableNumber: 2, capacity: 2, ticket: { price: 200 } }),
+    ];
+    const groups = buildPriceGroups([], new Map(), new Map(), objects);
+    const labels = groups.flatMap((group) => group.seats.map((seat) => seat.label));
+    expect(labels).toEqual(expect.arrayContaining(['Chair 5', 'Sofa 2 - Seat#1', 'Sofa 2 - Seat#2']));
+  });
+
   it('стул внутри сектора берёт его цену, диван и номерной стол — свои', () => {
     const objects = [
       object({ id: 20, objectType: 'add_chair', parentId: 1 }),

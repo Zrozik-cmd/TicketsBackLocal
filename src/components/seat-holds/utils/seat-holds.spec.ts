@@ -116,7 +116,11 @@ describe("закрепление мест схемы за заказом", () =>
   it("подпись места — на языке билета", () => {
     expect(seatLabelText("Row 3 - Seat#12", "ru")).toBe("Ряд 3, место 12");
     expect(seatLabelText("Row 3 - Seat#12", "en")).toBe("Row 3, seat 12");
-    expect(seatLabelText("Sofa #21 - Seat#2", "ru")).toBe("Sofa #21, место 2");
-    expect(seatLabelText("Table 7", "th")).toBe("Table 7");
+    expect(seatLabelText("Table 5 - Seat#2", "ru")).toBe("Стол 5, место 2");
+    expect(seatLabelText("Sofa #12 - Seat#1", "ru")).toBe("Диван #12, место 1");
+    expect(seatLabelText("Chair 3", "th")).toBe("เก้าอี้ 3");
+    expect(seatLabelText("Table 5 - Seat#2", "en")).toBe("Table 5, seat 2");
+    expect(seatLabelText("Sofa #21 - Seat#2", "ru")).toBe("Диван #21, место 2");
+    expect(seatLabelText("Table 7", "th")).toBe("โต๊ะ 7");
   });
 });

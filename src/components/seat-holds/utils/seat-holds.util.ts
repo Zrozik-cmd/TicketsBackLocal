@@ -123,6 +123,13 @@ const PLACE_WORD: Record<string, string> = {
   th: "ที่นั่ง",
 };
 
+// Мебель схемы в подписи места: «Table 5» → «Стол 5», «Sofa #12» → «Диван #12»
+const OBJECT_WORD: Record<string, Record<string, string>> = {
+  en: { Table: "Table", Chair: "Chair", Sofa: "Sofa", "Accessible seat": "Accessible seat" },
+  ru: { Table: "Стол", Chair: "Стул", Sofa: "Диван", "Accessible seat": "Место для МГН" },
+  th: { Table: "โต๊ะ", Chair: "เก้าอี้", Sofa: "โซฟา", "Accessible seat": "ที่นั่งสำหรับผู้พิการ" },
+};
+
 /** Подпись места схемы («Row 1 - Seat#9», «Sofa #21 - Seat#2») на языке билета. */
 export function seatLabelText(
   label: string | null | undefined,
@@ -132,8 +139,13 @@ export function seatLabelText(
   const lang = SEAT_TEXT[locale] ? locale : "en";
   const row = /^Row\s+(.+?)\s*-\s*Seat#(.+)$/.exec(text);
   if (row) return SEAT_TEXT[lang](row[1], row[2]);
-  return text.replace(
-    /\s*-\s*Seat#(\S+)$/,
-    (_, n: string) => `, ${PLACE_WORD[lang]} ${n}`,
-  );
+  return text
+    .replace(
+      /^(Table|Chair|Sofa|Accessible seat)(?=\s|$)/,
+      (word: string) => OBJECT_WORD[lang][word] ?? word,
+    )
+    .replace(
+      /\s*-\s*Seat#(\S+)$/,
+      (_, n: string) => `, ${PLACE_WORD[lang]} ${n}`,
+    );
 }
